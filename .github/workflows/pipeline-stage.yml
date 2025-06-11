@@ -1,4 +1,4 @@
-name: Pipeline for Terraform and Ansible
+name: Pipeline for stage cluster
 
 on:
   push:
