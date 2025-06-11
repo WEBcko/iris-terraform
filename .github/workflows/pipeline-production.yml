@@ -1,4 +1,4 @@
-name: Pipeline Production
+name: Pipeline for production cluster
 
 on:
   workflow_dispatch:
