@@ -25,10 +25,6 @@ variable "machine_type" {
   default = "e2-medium"
 }
 
-variable "disk_size" {
-  default = 20
-}
-
 variable "image" {
   default = "ubuntu-os-cloud/ubuntu-2204-lts"
 }
