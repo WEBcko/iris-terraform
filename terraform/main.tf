@@ -13,10 +13,10 @@ provider "google" {
 }
 
 resource "google_container_cluster" "primary" {
-  name     = "my-gke-cluster"
+  name     = var.cluster_name
   location = var.region
 
-  initial_node_count = var.cluster_size
+  node_count = var.cluster_size
 
   node_config {
     machine_type = var.machine_type
