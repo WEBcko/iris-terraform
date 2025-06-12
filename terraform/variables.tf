@@ -3,6 +3,16 @@ variable "project_id" {
   description = "ID do projeto GCP"
 }
 
+variable "cluster_name" {
+  type  = string
+  description = "nome do cluster"
+}
+
+variable "cluster_size" {
+  type = string
+  description = "tamanho do cluster"
+}
+
 variable "region" {
   default = "us-central1"
 }
