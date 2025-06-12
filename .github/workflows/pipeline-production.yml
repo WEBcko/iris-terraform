@@ -46,7 +46,7 @@ jobs:
                 -var "public_key_path=/home/runner/.ssh/id_rsa.pub" \
                 -var "machine_type=e2-medium" \
                 -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
-                -var "cluster_size=2"
+                -var "cluster_size=2" \
                 -var "cluster_name=production"
 
       - name: Terraform Plan
@@ -60,7 +60,7 @@ jobs:
             -var "public_key_path=/home/runner/.ssh/id_rsa.pub" \
             -var "machine_type=e2-medium" \
             -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
-            -var "cluster_size=2"
+            -var "cluster_size=2" \
             -var "cluster_name=production"
 
       - name: Terraform Apply and export VM IP
