@@ -43,7 +43,7 @@ jobs:
                 -var "region=us-central1" \
                 -var "zone=us-central1-a" \
                 -var "credentials_file_path=/home/runner/gcp_credentials/credentials.json" \
-                -var "public_key_path=/home/runner/.ssh/id_rsa.pub" \
+                -var "public_key=$(cat ~/.ssh/id_rsa.pub | tr -d '\n')"
                 -var "machine_type=e2-medium" \
                 -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
                 -var "cluster_size=2" \
@@ -57,7 +57,7 @@ jobs:
             -var "region=us-central1" \
             -var "zone=us-central1-a" \
             -var "credentials_file_path=/home/runner/gcp_credentials/credentials.json" \
-            -var "public_key_path=/home/runner/.ssh/id_rsa.pub" \
+            -var "public_key=$(cat ~/.ssh/id_rsa.pub | tr -d '\n')"
             -var "machine_type=e2-medium" \
             -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
             -var "cluster_size=2" \
