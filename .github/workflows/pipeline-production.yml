@@ -46,7 +46,7 @@ jobs:
                 -var "public_key_path=/home/runner/.ssh/id_rsa.pub" \
                 -var "machine_type=e2-medium" \
                 -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
-                -var "cluster_size=2" \
+                -var "cluster_size=1" \
                 -var "cluster_name=production"
       
       - name: Terraform Plan
@@ -60,7 +60,7 @@ jobs:
             -var "public_key_path=/home/runner/.ssh/id_rsa.pub" \
             -var "machine_type=e2-medium" \
             -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
-            -var "cluster_size=2" \
+            -var "cluster_size=1" \
             -var "cluster_name=production"
 
 
@@ -70,26 +70,3 @@ jobs:
           terraform apply -auto-approve planfile
           IPS=$(terraform output -json vm_ips | jq -r '.[]' | paste -sd "," -)
           echo "VM_IPS=$IPS" >> $GITHUB_ENV
-
-
-      - name: Instalar Ansible e preparar acesso SSH
-        run: |
-          sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ansible sshpass
-          echo "Adicionando $VM_IP ao known_hosts..."
-          ssh-keyscan -H "$VM_IPS" >> ~/.ssh/known_hosts || true
-
-      - name: Executar Ansible Playbook diretamente com IP
-        run: |
-          cd ansible
-          echo "Usando chave privada:"
-          ls -l /home/runner/.ssh/id_rsa || echo "Chave não encontrada"
-          echo "Conectando à VM $VM_IPS"
-
-          echo "$VM_IPS" | tr ',' '\n' > inventory.txt
-          
-          ansible-playbook playbook.yml \
-            -i inventory.txt \
-            -e ansible_user=ubuntu \
-            -e ansible_ssh_private_key_file=/home/runner/.ssh/id_rsa \
-            -vvvv
