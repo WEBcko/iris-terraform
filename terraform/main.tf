@@ -26,7 +26,7 @@ resource "google_container_cluster" "primary" {
     ]
 
     metadata = {
-      ssh-keys = "ubuntu:${file(var.public_key_path)}"
+      ssh-keys = "ubuntu:${trimspace(file(var.public_key_path))}"
     }
   }
 }
