@@ -48,16 +48,17 @@ jobs:
                 -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
                 -var "cluster_size=2" \
                 -var "cluster_name=production"
-
+      
       - name: Terraform Plan
         run: |
           cd terraform
+          PUB_KEY=$(awk '{printf "%s", $0}' ~/.ssh/id_rsa.pub)
           terraform plan -out=planfile \
             -var "project_id=${{ secrets.GCP_PROJECT_ID }}" \
             -var "region=us-central1" \
             -var "zone=us-central1-a" \
             -var "credentials_file_path=/home/runner/gcp_credentials/credentials.json" \
-            -var "public_key_path=/home/runner/.ssh/id_rsa.pub" \
+            -var "public_key=$PUB_KEY" \
             -var "machine_type=e2-medium" \
             -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
             -var "cluster_size=2" \
