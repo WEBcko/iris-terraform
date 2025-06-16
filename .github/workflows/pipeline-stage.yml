@@ -43,7 +43,7 @@ jobs:
           cd terraform
           terraform destroy -auto-approve \
                 -var "project_id=${{ secrets.GCP_PROJECT_ID_STAGE }}" \
-                -var "cluster_name=stage_cluster" \
+                -var "cluster_name=stage" \
                 -var "region=us-central" \
                 -var "zone=us-central1-a" \
                 -var "credentials_file_path=/home/runner/gcp_credentials/credentials.json" \
@@ -58,7 +58,7 @@ jobs:
           cd terraform
           terraform plan -out=planfile \
             -var "project_id=${{ secrets.GCP_PROJECT_ID_STAGE }}" \
-            -var "cluster_name=stage_cluster" \
+            -var "cluster_name=stage" \
             -var "region=us-central" \
             -var "zone=us-central1-a" \
             -var "credentials_file_path=/home/runner/gcp_credentials/credentials.json" \
