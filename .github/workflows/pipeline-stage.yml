@@ -33,7 +33,10 @@ jobs:
       - name: Initialize Terraform
         run: |
           cd terraform
-          terraform init -backend-config="credentials=/home/runner/gcp_credentials/credentials.json"
+          terraform init \
+            -backend-config="bucket=estado-state" \
+            -backend-config="prefix=terraform/state" \
+            -backend-config="credentials=/home/runner/gcp_credentials/credentials.json"
 
       - name: Terraform destroy
         run: |
