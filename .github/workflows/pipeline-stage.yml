@@ -38,15 +38,19 @@ jobs:
             -backend-config="prefix=terraform/state" \
             -backend-config="credentials=/home/runner/gcp_credentials/credentials.json"
 
-      - name: Instalar plugin de autenticação GKE
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y google-cloud-cli-gke-gcloud-auth-plugin
+      - name: Configure GKE access
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: '>= 416.0.0'
+          install_components: 'kubectl,gke-gcloud-auth-plugin'
+          project_id: ${{ secrets.GCP_PROJECT_ID_STAGE }}
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_STAGE }}
 
-      - name: Configurar kubeconfig para GKE
-        run: |
-          gcloud auth activate-service-account --key-file=/home/runner/gcp_credentials/credentials.json
-          gcloud container clusters get-credentials stage --region us-central1 --project ${{ secrets.GCP_PROJECT_ID_STAGE }}
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: stage
+          location: us-central1
 
       
       - name: Terraform destroy
