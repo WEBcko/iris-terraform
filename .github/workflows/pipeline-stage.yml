@@ -37,6 +37,11 @@ jobs:
             -backend-config="bucket=estado-state" \
             -backend-config="prefix=terraform/state" \
             -backend-config="credentials=/home/runner/gcp_credentials/credentials.json"
+      
+      - name: Desabilitar deletion protection no cluster
+        run: |
+          gcloud auth activate-service-account --key-file=/home/runner/gcp_credentials/credentials.json
+          gcloud container clusters update stage --region us-central1 --no-enable-deletion-protection --project ${{ secrets.GCP_PROJECT_ID_STAGE }}
 
       - name: Terraform destroy
         run: |
