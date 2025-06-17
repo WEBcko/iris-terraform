@@ -21,8 +21,8 @@
       register: yaml_files
 
     - name: Aplicar todos os manifests no cluster GKE
+      loop: "{{ yaml_files.files }}"
       k8s:
         kubeconfig: "{{ lookup('env', 'K8S_AUTH_KUBECONFIG') }}"
         state: present
         src: "{{ item.path }}"
-      loop: "{{ yaml_files.files }}"
