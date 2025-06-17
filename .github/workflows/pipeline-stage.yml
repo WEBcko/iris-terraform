@@ -88,10 +88,9 @@ jobs:
         run: |
           gcloud components install gke-gcloud-auth-plugin
           gcloud container clusters get-credentials stage --region us-central1 --project ${{ secrets.GCP_PROJECT_ID_STAGE }}
-
-      - name: Mostrar serviços monitoring
-        run: |
-          kubectl get svc -n monitoring
+          mkdir -p $HOME/.kube
+          ls -l $HOME/.kube/config
+          head -20 $HOME/.kube/config
 
       - name: Instalar Ansible e dependências
         run: |
@@ -99,17 +98,11 @@ jobs:
           sudo apt-get install -y python3-pip git
           pip install ansible kubernetes
 
-      - name: Debug kubeconfig
-        run: |
-          echo "Arquivo kubeconfig:"
-          cat $HOME/.kube/config
-          echo "Contexto atual:"
-          kubectl config current-context
-          echo "Cluster info:"
-          kubectl cluster-info
-          
-      - name: Deploy via Ansible no GKE
-        run: |
-          ansible-playbook ansible/playbook.yml
+      - name: Executar Ansible playbook
+        run: ansible-playbook ansible/playbook.yml
         env:
-          K8S_AUTH_KUBECONFIG: $HOME/.kube/config
+          K8S_AUTH_KUBECONFIG: ${{ env.HOME }}/.kube/config
+
+      - name: Mostrar serviços monitoring
+        run: |
+          kubectl get svc -n monitoring
