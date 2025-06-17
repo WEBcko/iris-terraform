@@ -17,14 +17,6 @@ jobs:
           echo "${{ secrets.GCP_SERVICE_ACCOUNT }}" | base64 -d > /home/runner/gcp_credentials/credentials.json
           chmod 600 /home/runner/gcp_credentials/credentials.json
 
-      - name: Gerar par de chaves SSH para acesso à VM
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keygen -t rsa -b 4096 -C "ci-terraform" -f ~/.ssh/id_rsa -N ""
-          chmod 600 ~/.ssh/id_rsa
-          chmod 644 ~/.ssh/id_rsa.pub
-          echo "Chave SSH gerada com sucesso"
-
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -58,7 +50,6 @@ jobs:
                 -var "region=us-central1" \
                 -var "zone=us-central1-a" \
                 -var "credentials_file_path=/home/runner/gcp_credentials/credentials.json" \
-                -var "public_key_path=/home/runner/.ssh/id_rsa.pub" \
                 -var "machine_type=e2-medium" \
                 -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
                 -var "cluster_size=1" \
@@ -73,7 +64,6 @@ jobs:
                 -var "region=us-central1" \
                 -var "zone=us-central1-a" \
                 -var "credentials_file_path=/home/runner/gcp_credentials/credentials.json" \
-                -var "public_key_path=/home/runner/.ssh/id_rsa.pub" \
                 -var "machine_type=e2-medium" \
                 -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
                 -var "cluster_size=1" \
