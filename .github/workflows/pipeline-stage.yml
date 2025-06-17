@@ -61,8 +61,7 @@ jobs:
                 -var "machine_type=e2-medium" \
                 -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
                 -var "cluster_size=1" \
-                -var "cluster_name=stage" \
-                -var "bucket_name=estado-state"
+                -var "cluster_name=stage" 
 
       - name: Terraform Plan
         run: |
@@ -75,8 +74,7 @@ jobs:
                 -var "machine_type=e2-medium" \
                 -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
                 -var "cluster_size=1" \
-                -var "cluster_name=stage" \
-                -var "bucket_name=estado-state"
+                -var "cluster_name=stage" 
 
       - name: Terraform Apply and export VM IP
         run: |
