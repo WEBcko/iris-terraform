@@ -103,4 +103,4 @@ jobs:
 
       - name: Deploy via Ansible no GKE
         run: |
-          ansible-playbook ansible/deploy-k8s.yml
+          ansible-playbook ansible/playbook.yml
