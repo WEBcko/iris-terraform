@@ -49,14 +49,6 @@ jobs:
           version: '>= 416.0.0'
           install_components: 'kubectl,gke-gcloud-auth-plugin'
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-
-      - name: Get GKE credentials
-        uses: google-github-actions/get-gke-credentials@v1
-        with:
-          cluster_name: production
-          location: us-central1
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-
       
       - name: Terraform destroy
         run: |
@@ -95,6 +87,13 @@ jobs:
           ENDPOINT=$(terraform output -raw cluster_endpoint)
           echo "CLUSTER_ENDPOINT=$ENDPOINT" >> $GITHUB_ENV
           echo "Endpoint do cluster: $ENDPOINT"
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: production
+          location: us-central1
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Configurar acesso kubectl
         run: |
