@@ -20,7 +20,3 @@
         src: "{{ item }}"
       with_fileglob:
         - "{{ manifests_path }}/*.yaml"
-    - name: Subir containers com Docker Compose
-      shell: docker-compose up -d
-      args:
-        chdir: /home/ubuntu/app
