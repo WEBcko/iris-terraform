@@ -85,31 +85,101 @@ jobs:
           location: us-central1
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Configurar acesso kubectl
+           - name: Extract Cluster Name
         run: |
-          gcloud components install gke-gcloud-auth-plugin
-          gcloud container clusters get-credentials production --region us-central1 --project ${{ secrets.GCP_PROJECT_ID }}
+          cd terraform
+          CLUSTER_NAME=$(terraform output -raw cluster_name | tr -d '\r')
+          echo "CLUSTER_NAME=$CLUSTER_NAME" >> $GITHUB_ENV
 
-      - name: Mostrar serviços monitoring
+      - name: Configure kubectl manually (secure & plugin-free)
         run: |
-          kubectl get svc -n monitoring
+          gcloud auth activate-service-account --key-file=/home/runner/gcp_credentials/credentials.json
+          gcloud config set project ${{ secrets.GCP_PROJECT_ID_STAGE }}
 
-      - name: Instalar Ansible e preparar acesso SSH
-        run: |
-          sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ansible sshpass
-          echo "Adicionando $VM_IP ao known_hosts..."
-          ssh-keyscan -H "$VM_IP" >> ~/.ssh/known_hosts || true
+          ACCESS_TOKEN=$(gcloud auth print-access-token)
+          CLUSTER_ENDPOINT=$(gcloud container clusters describe $CLUSTER_NAME \
+            --region us-central1 \
+            --format="value(endpoint)")
 
-      - name: Executar Ansible Playbook diretamente com IP
+          CLUSTER_CA=$(gcloud container clusters describe $CLUSTER_NAME \
+            --region us-central1 \
+            --format="value(masterAuth.clusterCaCertificate)")
+
+          echo "$CLUSTER_CA" | base64 -d > /tmp/ca.crt
+
+          kubectl config set-cluster gke-cluster \
+            --server=https://$CLUSTER_ENDPOINT \
+            --certificate-authority=/tmp/ca.crt
+
+          kubectl config set-credentials gke-user --token=$ACCESS_TOKEN
+          kubectl config set-context gke-context \
+            --cluster=gke-cluster --user=gke-user
+          kubectl config use-context gke-context 
+
+      - name: Download Kubernetes manifests from GCS
         run: |
-          cd ansible
-          echo "Usando chave privada:"
-          ls -l /home/runner/.ssh/id_rsa || echo "Chave não encontrada"
-          echo "Conectando à VM $VM_IP"
+          mkdir -p k8s-manifests
+          gsutil -m cp -r gs://estado-production/manifests/* ./k8s-manifests
+
+      - name: Apply PersistentVolumeClaims
+        run: |
+          find ./k8s-manifests -type f -name "*pvc.yaml" | while read file; do
+            echo "Applying PVC $file"
+            kubectl apply -f "$file"
+          done
       
-          ansible-playbook playbook.yml \
-            -i "$VM_IP," \
-            -e ansible_user=ubuntu \
-            -e ansible_ssh_private_key_file=/home/runner/.ssh/id_rsa \
-            -vvvv
+      - name: Add ingress-nginx Helm repo
+        run: |
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update
+
+      - name: Install ingress-nginx with static IP
+        run: |
+          helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+            --namespace app --create-namespace \
+            -f k8s-manifests/ingress/ingress-nginx-values.yaml
+
+      - name: Wait for ingress-nginx controller to be ready
+        run: |
+          kubectl rollout status deployment ingress-nginx-controller -n app --timeout=120s
+          
+      - name: Apply ingress (frontend/backend)
+        run: |
+          kubectl apply -f k8s-manifests/ingress/ingress.yaml
+
+      - name: Apply remaining manifests (excluding ingress & PVCs)
+        run: |
+          find ./k8s-manifests -type f -name "*.yaml" \
+            ! -name "*pvc.yaml" \
+            ! -name "ingress.yaml" \
+            ! -name "ingress-final.yaml" \
+            ! -name "ingress-nginx-values.yaml" \
+            ! -name "ingress-prometheus-grafana.yaml" | while read file; do
+              echo "Applying $file"
+              kubectl apply -f "$file"
+          done  
+
+      # - name: Configurar acesso kubectl
+      #   run: |
+      #     gcloud components install gke-gcloud-auth-plugin
+      #     gcloud container clusters get-credentials stage \
+      #       --region us-central1 \
+      #       --project ${{ secrets.GCP_PROJECT_ID_STAGE }}
+      
+      # - name: Instalar Ansible e dependências
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y python3-pip git
+      #     pip install ansible kubernetes openshift
+      
+      # - name: Imprimir conteudo do playbook.yml para depuracao
+      #   run: cat ansible/playbook.yml
+      
+      # - name: Executar Ansible playbook
+      #   run: ansible-playbook ansible/playbook.yml
+      #   env:
+      #     K8S_AUTH_KUBECONFIG: ${{ env.KUBECONFIG }}
+
+      # - name: Mostrar serviços monitoring
+      #   run: |
+      #     kubectl get svc -n monitoring
