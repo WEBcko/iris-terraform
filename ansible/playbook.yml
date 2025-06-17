@@ -1,28 +1,25 @@
 ---
-- name: Configurar VM e fazer deploy da aplicação
-  hosts: all
-  become: true
+- name: Aplicar manifests Kubernetes no GKE
+  hosts: localhost
+  connection: local
+
+  vars:
+    manifests_path: ./kubernetes-deployments
 
   tasks:
-    - name: Atualizar pacotes
-      apt:
-        update_cache: yes
-        upgrade: yes
-
-    - name: Instalar Docker e Docker Compose
-      apt:
-        name:
-          - docker.io
-          - docker-compose
-        state: present
-
-    - name: Clonar repositório do projeto
+    - name: Clonar repositório com os manifests
       git:
-        repo: https://github.com/WEBcko/terraform-ansible.git
-        dest: /home/ubuntu/app
-        version: main
+        repo: https://github.com/WEBcko/kubernetes-deployments.git
+        dest: "{{ manifests_path }}"
         force: yes
 
+    - name: Aplicar todos os manifests no cluster GKE
+      k8s:
+        kubeconfig: ~/.kube/config
+        state: present
+        src: "{{ item }}"
+      with_fileglob:
+        - "{{ manifests_path }}/*.yaml"
     - name: Subir containers com Docker Compose
       shell: docker-compose up -d
       args:
