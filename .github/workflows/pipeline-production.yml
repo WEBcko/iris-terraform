@@ -34,7 +34,7 @@ jobs:
         run: |
           cd terraform
           terraform init \
-            -backend-config="bucket=estado-state" \
+            -backend-config="bucket=estado-production" \
             -backend-config="prefix=terraform/state" \
             -backend-config="credentials=/home/runner/gcp_credentials/credentials.json"
 
