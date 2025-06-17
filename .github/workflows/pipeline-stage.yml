@@ -76,7 +76,7 @@ jobs:
                 -var "cluster_size=1" \
                 -var "cluster_name=stage" 
 
-      - name: Terraform Apply and export VM IP
+      - name: Terraform Apply
         run: |
           cd terraform
           terraform apply -auto-approve planfile
