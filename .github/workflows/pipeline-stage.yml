@@ -17,14 +17,6 @@ jobs:
           echo "${{ secrets.GCP_SERVICE_ACCOUNT_STAGE }}" | base64 -d > /home/runner/gcp_credentials/credentials.json
           chmod 600 /home/runner/gcp_credentials/credentials.json
 
-      - name: Gerar par de chaves SSH para acesso à VM
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keygen -t rsa -b 4096 -C "ci-terraform" -f ~/.ssh/id_rsa -N ""
-          chmod 600 ~/.ssh/id_rsa
-          chmod 644 ~/.ssh/id_rsa.pub
-          echo "Chave SSH gerada com sucesso"
-
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -66,7 +58,6 @@ jobs:
                 -var "region=us-central1" \
                 -var "zone=us-central1-a" \
                 -var "credentials_file_path=/home/runner/gcp_credentials/credentials.json" \
-                -var "public_key_path=/home/runner/.ssh/id_rsa.pub" \
                 -var "machine_type=e2-medium" \
                 -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
                 -var "cluster_size=1" \
@@ -81,7 +72,6 @@ jobs:
                 -var "region=us-central1" \
                 -var "zone=us-central1-a" \
                 -var "credentials_file_path=/home/runner/gcp_credentials/credentials.json" \
-                -var "public_key_path=/home/runner/.ssh/id_rsa.pub" \
                 -var "machine_type=e2-medium" \
                 -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
                 -var "cluster_size=1" \
@@ -105,22 +95,12 @@ jobs:
         run: |
           kubectl get svc -n monitoring
 
-      - name: Instalar Ansible e preparar acesso SSH
+      - name: Instalar Ansible e dependências
         run: |
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ansible sshpass
-          echo "Adicionando $VM_IP ao known_hosts..."
-          ssh-keyscan -H "$VM_IP" >> ~/.ssh/known_hosts || true
+          sudo apt-get install -y python3-pip git
+          pip install ansible kubernetes
 
-      - name: Executar Ansible Playbook diretamente com IP
+      - name: Deploy via Ansible no GKE
         run: |
-          cd ansible
-          echo "Usando chave privada:"
-          ls -l /home/runner/.ssh/id_rsa || echo "Chave não encontrada"
-          echo "Conectando à VM $VM_IP"
-      
-          ansible-playbook playbook.yml \
-            -i "$VM_IP," \
-            -e ansible_user=ubuntu \
-            -e ansible_ssh_private_key_file=/home/runner/.ssh/id_rsa \
-            -vvvv
+          ansible-playbook ansible/deploy-k8s.yml
