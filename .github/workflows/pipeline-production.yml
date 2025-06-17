@@ -33,8 +33,31 @@ jobs:
       - name: Initialize Terraform
         run: |
           cd terraform
-          terraform init -backend-config="credentials=/home/runner/gcp_credentials/credentials.json"
+          terraform init \
+            -backend-config="bucket=estado-state" \
+            -backend-config="prefix=terraform/state" \
+            -backend-config="credentials=/home/runner/gcp_credentials/credentials.json"
 
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configure GKE access
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: '>= 416.0.0'
+          install_components: 'kubectl,gke-gcloud-auth-plugin'
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: production
+          location: us-central1
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      
       - name: Terraform destroy
         run: |
           cd terraform
@@ -47,26 +70,57 @@ jobs:
                 -var "machine_type=e2-medium" \
                 -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
                 -var "cluster_size=1" \
-                -var "cluster_name=production"
-      
+                -var "cluster_name=production" \
+                -var "bucket_name=estado-production"
+
       - name: Terraform Plan
         run: |
           cd terraform
           terraform plan -out=planfile \
-            -var "project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var "region=us-central1" \
-            -var "zone=us-central1-a" \
-            -var "credentials_file_path=/home/runner/gcp_credentials/credentials.json" \
-            -var "public_key_path=/home/runner/.ssh/id_rsa.pub" \
-            -var "machine_type=e2-medium" \
-            -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
-            -var "cluster_size=1" \
-            -var "cluster_name=production"
-
+                -var "project_id=${{ secrets.GCP_PROJECT_ID }}" \
+                -var "region=us-central1" \
+                -var "zone=us-central1-a" \
+                -var "credentials_file_path=/home/runner/gcp_credentials/credentials.json" \
+                -var "public_key_path=/home/runner/.ssh/id_rsa.pub" \
+                -var "machine_type=e2-medium" \
+                -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
+                -var "cluster_size=1" \
+                -var "cluster_name=production" \
+                -var "bucket_name=estado-state"
 
       - name: Terraform Apply and export VM IP
         run: |
           cd terraform
           terraform apply -auto-approve planfile
-          IPS=$(terraform output -json vm_ips | jq -r '.[]' | paste -sd "," -)
-          echo "VM_IPS=$IPS" >> $GITHUB_ENV
+          ENDPOINT=$(terraform output -raw cluster_endpoint)
+          echo "CLUSTER_ENDPOINT=$ENDPOINT" >> $GITHUB_ENV
+          echo "Endpoint do cluster: $ENDPOINT"
+
+      - name: Configurar acesso kubectl
+        run: |
+          gcloud components install gke-gcloud-auth-plugin
+          gcloud container clusters get-credentials production --region us-central1 --project ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Mostrar serviços monitoring
+        run: |
+          kubectl get svc -n monitoring
+
+      - name: Instalar Ansible e preparar acesso SSH
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ansible sshpass
+          echo "Adicionando $VM_IP ao known_hosts..."
+          ssh-keyscan -H "$VM_IP" >> ~/.ssh/known_hosts || true
+
+      - name: Executar Ansible Playbook diretamente com IP
+        run: |
+          cd ansible
+          echo "Usando chave privada:"
+          ls -l /home/runner/.ssh/id_rsa || echo "Chave não encontrada"
+          echo "Conectando à VM $VM_IP"
+      
+          ansible-playbook playbook.yml \
+            -i "$VM_IP," \
+            -e ansible_user=ubuntu \
+            -e ansible_ssh_private_key_file=/home/runner/.ssh/id_rsa \
+            -vvvv
