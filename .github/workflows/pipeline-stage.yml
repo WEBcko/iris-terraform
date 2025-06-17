@@ -97,6 +97,9 @@ jobs:
           sudo apt-get install -y python3-pip git
           pip install ansible kubernetes openshift
       
+      - name: Imprimir conteudo do playbook.yml para depuracao
+        run: cat ansible/playbook.yml
+      
       - name: Executar Ansible playbook
         run: ansible-playbook ansible/playbook.yml
         env:
