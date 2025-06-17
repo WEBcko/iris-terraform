@@ -104,3 +104,5 @@ jobs:
       - name: Deploy via Ansible no GKE
         run: |
           ansible-playbook ansible/playbook.yml
+        env:
+          K8S_AUTH_KUBECONFIG: ${{ env.HOME }}/.kube/config
