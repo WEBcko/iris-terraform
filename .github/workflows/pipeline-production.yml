@@ -42,19 +42,18 @@ jobs:
           install_components: 'kubectl,gke-gcloud-auth-plugin'
           project_id: ${{ secrets.GCP_PROJECT_ID }}
       
-      # - name: Terraform destroy
-      #   run: |
-      #     cd terraform
-      #     terraform destroy -auto-approve \
-      #           -var "project_id=${{ secrets.GCP_PROJECT_ID }}" \
-      #           -var "region=us-central1" \
-      #           -var "zone=us-central1-a" \
-      #           -var "credentials_file_path=/home/runner/gcp_credentials/credentials.json" \
-      #           -var "machine_type=e2-medium" \
-      #           -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
-      #           -var "cluster_size=1" \
-      #           -var "cluster_name=production" \
-      #           -var "bucket_name=estado-production"
+      - name: Terraform destroy
+        run: |
+          cd terraform
+          terraform destroy -auto-approve \
+                -var "project_id=${{ secrets.GCP_PROJECT_ID }}" \
+                -var "region=us-central1" \
+                -var "zone=us-central1-a" \
+                -var "credentials_file_path=/home/runner/gcp_credentials/credentials.json" \
+                -var "machine_type=e2-medium" \
+                -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
+                -var "cluster_size=1" \
+                -var "cluster_name=production" 
 
       - name: Terraform Plan
         run: |
@@ -67,8 +66,7 @@ jobs:
                 -var "machine_type=e2-medium" \
                 -var "image=ubuntu-os-cloud/ubuntu-2204-lts" \
                 -var "cluster_size=1" \
-                -var "cluster_name=production" \
-                -var "bucket_name=estado-state"
+                -var "cluster_name=production" 
 
       - name: Terraform Apply and export VM IP
         run: |
