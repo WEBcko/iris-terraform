@@ -13,10 +13,16 @@
         dest: "{{ manifests_path }}"
         force: yes
 
+    - name: Buscar todos os arquivos YAML recursivamente
+      find:
+        paths: "{{ manifests_path }}"
+        recurse: yes
+        patterns: "*.yaml"
+      register: yaml_files
+
     - name: Aplicar todos os manifests no cluster GKE
       k8s:
         kubeconfig: ~/.kube/config
         state: present
-        src: "{{ item }}"
-      with_fileglob:
-        - "{{ manifests_path }}/**/*.yaml"
+        src: "{{ item.path }}"
+      loop: "{{ yaml_files.files }}"
