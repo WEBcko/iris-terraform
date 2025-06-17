@@ -10,7 +10,7 @@ provider "google" {
 }
 
 data "google_compute_address" "ingress_ip" {
-  name   = "ingress-static-ip"
+  name   = "stage-project"
   region = var.region
 }
 
