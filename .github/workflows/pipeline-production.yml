@@ -85,7 +85,7 @@ jobs:
           location: us-central1
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-           - name: Extract Cluster Name
+      - name: Extract Cluster Name
         run: |
           cd terraform
           CLUSTER_NAME=$(terraform output -raw cluster_name | tr -d '\r')
