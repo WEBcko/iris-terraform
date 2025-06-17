@@ -5,6 +5,7 @@
 
   vars:
     manifests_path: ./kubernetes-deployments
+    kubeconfig_path: "{{ lookup('env','HOME') }}/.kube/config"
 
   tasks:
     - name: Clonar repositório com os manifests
@@ -22,7 +23,7 @@
 
     - name: Aplicar todos os manifests no cluster GKE
       k8s:
-        kubeconfig: ~/.kube/config
+        kubeconfig: "{{ kubeconfig_path }}"
         state: present
         src: "{{ item.path }}"
       loop: "{{ yaml_files.files }}"
