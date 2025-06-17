@@ -19,4 +19,4 @@
         state: present
         src: "{{ item }}"
       with_fileglob:
-        - "{{ manifests_path }}/*.yaml"
+        - "{{ manifests_path }}/**/*.yaml"
