@@ -5,7 +5,7 @@
 
   vars:
     manifests_path: ./kubernetes-deployments
-    kubeconfig_path: "{{ lookup(\'env\', \'K8S_AUTH_KUBECONFIG\') }}"
+    kubeconfig_path: "{{ lookup('env', 'K8S_AUTH_KUBECONFIG') }}"
 
   tasks:
     - name: Clonar repositório com os manifests
@@ -27,4 +27,3 @@
         kubeconfig: "{{ kubeconfig_path }}"
         state: present
         src: "{{ item.path }}"
-        
