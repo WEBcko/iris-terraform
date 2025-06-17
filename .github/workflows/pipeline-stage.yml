@@ -87,24 +87,20 @@ jobs:
       - name: Configurar acesso kubectl
         run: |
           gcloud components install gke-gcloud-auth-plugin
-          mkdir -p $HOME/.kube
           gcloud container clusters get-credentials stage \
             --region us-central1 \
             --project ${{ secrets.GCP_PROJECT_ID_STAGE }}
-          echo "Conteúdo do ~/.kube:"
-          ls -l $HOME/.kube
-          head -20 $HOME/.kube/config
-
+      
       - name: Instalar Ansible e dependências
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip git
           pip install ansible kubernetes
-
+      
       - name: Executar Ansible playbook
         run: ansible-playbook ansible/playbook.yml
         env:
-          K8S_AUTH_KUBECONFIG: ${{ env.HOME }}/.kube/config
+          K8S_AUTH_KUBECONFIG: ${{ env.KUBECONFIG }}
 
       - name: Mostrar serviços monitoring
         run: |
