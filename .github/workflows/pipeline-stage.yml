@@ -80,31 +80,102 @@ jobs:
         run: |
           cd terraform
           terraform apply -auto-approve planfile
-          ENDPOINT=$(terraform output -raw cluster_endpoint)
-          echo "CLUSTER_ENDPOINT=$ENDPOINT" >> $GITHUB_ENV
-          echo "Endpoint do cluster: $ENDPOINT"
-
-      - name: Configurar acesso kubectl
+        
+      - name: Extract Cluster Name
         run: |
-          gcloud components install gke-gcloud-auth-plugin
-          gcloud container clusters get-credentials stage \
+          cd terraform
+          CLUSTER_NAME=$(terraform output -raw cluster_name | tr -d '\r')
+          echo "CLUSTER_NAME=$CLUSTER_NAME" >> $GITHUB_ENV
+
+      - name: Configure kubectl manually (secure & plugin-free)
+        run: |
+          gcloud auth activate-service-account --key-file=/home/runner/gcp_credentials/credentials.json
+          gcloud config set project ${{ secrets.GCP_PROJECT_ID_STAGE }}
+
+          ACCESS_TOKEN=$(gcloud auth print-access-token)
+          CLUSTER_ENDPOINT=$(gcloud container clusters describe $CLUSTER_NAME \
             --region us-central1 \
-            --project ${{ secrets.GCP_PROJECT_ID_STAGE }}
-      
-      - name: Instalar Ansible e dependências
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip git
-          pip install ansible kubernetes openshift
-      
-      - name: Imprimir conteudo do playbook.yml para depuracao
-        run: cat ansible/playbook.yml
-      
-      - name: Executar Ansible playbook
-        run: ansible-playbook ansible/playbook.yml
-        env:
-          K8S_AUTH_KUBECONFIG: ${{ env.KUBECONFIG }}
+            --format="value(endpoint)")
 
-      - name: Mostrar serviços monitoring
+          CLUSTER_CA=$(gcloud container clusters describe $CLUSTER_NAME \
+            --region us-central1 \
+            --format="value(masterAuth.clusterCaCertificate)")
+
+          echo "$CLUSTER_CA" | base64 -d > /tmp/ca.crt
+
+          kubectl config set-cluster gke-cluster \
+            --server=https://$CLUSTER_ENDPOINT \
+            --certificate-authority=/tmp/ca.crt
+
+          kubectl config set-credentials gke-user --token=$ACCESS_TOKEN
+          kubectl config set-context gke-context \
+            --cluster=gke-cluster --user=gke-user
+          kubectl config use-context gke-context 
+
+      - name: Download Kubernetes manifests from GCS
         run: |
-          kubectl get svc -n monitoring
+          mkdir -p k8s-manifests
+          gsutil -m cp -r gs://estado-state/manifests/* ./k8s-manifests
+
+      - name: Apply PersistentVolumeClaims
+        run: |
+          find ./k8s-manifests -type f -name "*pvc.yaml" | while read file; do
+            echo "Applying PVC $file"
+            kubectl apply -f "$file"
+          done
+      
+      - name: Add ingress-nginx Helm repo
+        run: |
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update
+
+      - name: Install ingress-nginx with static IP
+        run: |
+          helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+            --namespace app --create-namespace \
+            -f k8s-manifests/ingress/ingress-nginx-values.yaml
+
+      - name: Wait for ingress-nginx controller to be ready
+        run: |
+          kubectl rollout status deployment ingress-nginx-controller -n app --timeout=120s
+          
+      - name: Apply ingress (frontend/backend)
+        run: |
+          kubectl apply -f k8s-manifests/ingress/ingress.yaml
+
+      - name: Apply remaining manifests (excluding ingress & PVCs)
+        run: |
+          find ./k8s-manifests -type f -name "*.yaml" \
+            ! -name "*pvc.yaml" \
+            ! -name "ingress.yaml" \
+            ! -name "ingress-final.yaml" \
+            ! -name "ingress-nginx-values.yaml" \
+            ! -name "ingress-prometheus-grafana.yaml" | while read file; do
+              echo "Applying $file"
+              kubectl apply -f "$file"
+          done  
+
+      # - name: Configurar acesso kubectl
+      #   run: |
+      #     gcloud components install gke-gcloud-auth-plugin
+      #     gcloud container clusters get-credentials stage \
+      #       --region us-central1 \
+      #       --project ${{ secrets.GCP_PROJECT_ID_STAGE }}
+      
+      # - name: Instalar Ansible e dependências
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y python3-pip git
+      #     pip install ansible kubernetes openshift
+      
+      # - name: Imprimir conteudo do playbook.yml para depuracao
+      #   run: cat ansible/playbook.yml
+      
+      # - name: Executar Ansible playbook
+      #   run: ansible-playbook ansible/playbook.yml
+      #   env:
+      #     K8S_AUTH_KUBECONFIG: ${{ env.KUBECONFIG }}
+
+      # - name: Mostrar serviços monitoring
+      #   run: |
+      #     kubectl get svc -n monitoring
